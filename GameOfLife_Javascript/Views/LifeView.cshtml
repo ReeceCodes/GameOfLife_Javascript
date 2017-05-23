@@ -1,0 +1,279 @@
+﻿<div>
+    <div class="row">
+        <div class="col-sm-12 text-center">
+            <canvas name="can" style="border: 1px solid black;" height="500" width="500"></canvas>
+        </div>
+    </div>
+    <br/>
+    <div class="row">
+        <div class="col-sm-12">
+            <label>Population: <span id="population">0</span></label><br/>
+            <label>Generation: <span id="generation">0</span></label>
+        </div>
+    </div>
+    <br />
+    <div class="row">
+        <div class="col-sm-2 col-sm-offset-2">
+            <button onclick="BeginLife();">Start</button>
+        </div>
+        <div class="col-sm-2">
+            <button onclick="EndLife();">Stop</button>
+        </div>
+        <div class="col-sm-2">
+            <button onclick="AdvanceLife();">Step</button>
+        </div>
+        <div class="col-sm-2">
+            <button onclick="ResetLife();">Reset</button>
+        </div>
+        <div class="col-sm-2">
+            <button onclick="RandomLife();">Randomize</button>
+        </div>
+    </div>
+    <br />
+    <div class="row">
+        <div class="col-sm-4 col-sm-offset-2">
+            <label for="height">Height:</label> <input type="number" id="height" value="500" min="1" max="1000" step="1" />
+            <label for="width">Width:</label> <input type="number" id="width" value="500" min="1" max="1000" step="1" />            
+        </div>
+        <div class="col-sm-3">
+            <label for="alivecolor">Alive Color:</label>
+            <select name="alivecolor">
+                <option style="background:rgba(0,0,0,1);color:white;" value="black" selected="selected">Black</option>
+                <option style="background:rgba(255,255,255,1);" value="white">White</option>
+                <option style="background:rgba(255,0,0,1);" value="red">Red</option>
+                <option style="background:rgba(0,255,0,1);" value="green">Green</option>
+                <option style="background:rgba(0,0,255,1);color:white;" value="blue">Blue</option>
+                <option style="background:rgba(255,0,255,1);color:white;" value="purple">Purple</option>
+                <option style="background:rgba(255,255,0,1);" value="yellow">Yellow</option>
+                <option style="background:rgba(0,255,255,1);" value="cyan">Cyan</option>
+            </select>
+        </div>
+        <div class="col-sm-3">
+            <label for="deadcolor">Dead Color:</label>
+            <select name="deadcolor">
+                <option style="background:rgba(0,0,0,1);color:white;" value="black">Black</option>
+                <option style="background:rgba(255,255,255,1);" value="white" selected="selected">White</option>
+                <option style="background:rgba(255,0,0,1);" value="red">Red</option>
+                <option style="background:rgba(0,255,0,1);" value="green">Green</option>
+                <option style="background:rgba(0,0,255,1);color:white;" value="blue">Blue</option>
+                <option style="background:rgba(255,0,255,1);color:white;" value="purple">Purple</option>
+                <option style="background:rgba(255,255,0,1);" value="yellow">Yellow</option>
+                <option style="background:rgba(0,255,255,1);" value="cyan">Cyan</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<script>
+    //starts with a few function declarations and then the life 'class'
+    Array.matrix = function (m, n, initial) {
+        var a, i, j, mat = [];
+        for (i = 0; i < m; i += 1) {
+            a = [];
+            for (j = 0; j < n; j += 1) {
+                a[j] = 0;
+            }
+            mat[i] = a;
+        }
+        return mat;
+    };
+
+    var can = $('canvas')[0];
+    var Life = Life || {};
+    Life.CELL_SIZE = 10;
+    Life.X = $("#width").val() || 500;
+    Life.Y = $("#height").val() || 500;
+    Life.WIDTH = Life.X / Life.CELL_SIZE;
+    Life.HEIGHT = Life.Y / Life.CELL_SIZE;
+    Life.DEAD = 0;
+    Life.ALIVE = 1;
+    Life.DELAY = 100;
+    Life.STOPPED = 0;
+    Life.RUNNING = 1;
+    Life.minimum = 2;
+    Life.maximum = 3;
+    Life.spawn = 3;
+    Life.state = Life.STOPPED;
+    Life.interval = null;
+    Life.grid = Array.matrix(Life.HEIGHT, Life.WIDTH, 0);
+    Life.counter = 0;
+    Life.generations = 0;
+    Life.AliveColor = $('select[name="alivecolor"]').val();
+    Life.DeadColor = $('select[name="deadcolor"]').val();
+    Life.updateState = function () {
+        var neighbours;
+        var nextGenerationGrid = Array.matrix(Life.HEIGHT, Life.WIDTH, 0);
+        for (var h = 0; h < Life.HEIGHT; h++) {
+            for (var w = 0; w < Life.WIDTH; w++) {
+                neighbours = Life.calculateNeighbours(h, w);
+                if (Life.grid[h][w] !== Life.DEAD) {
+                    if ((neighbours >= Life.minimum) && (neighbours <= Life.maximum)) {
+                        nextGenerationGrid[h][w] = Life.ALIVE;
+                        Life.counter++;
+                    }
+                } else {
+                    if (neighbours === Life.spawn) {
+                        nextGenerationGrid[h][w] = Life.ALIVE;
+                        Life.counter++;
+                    }
+                }
+            }
+        }
+        Life.copyGrid(nextGenerationGrid, Life.grid);
+        
+    };
+    Life.calculateNeighbours = function (y, x) {
+        var total = (Life.grid[y][x] !== Life.DEAD) ? -1 : 0;
+        for (var h = -1; h <= 1; h++) {
+            for (var w = -1; w <= 1; w++) {
+                if (Life.grid[(Life.HEIGHT + (y + h)) % Life.HEIGHT][(Life.WIDTH + (x + w)) % Life.WIDTH] !== Life.DEAD) {
+                    total++;
+                }
+            }
+        }
+        return total;
+    };
+    Life.copyGrid = function (source, destination) {
+        for (var h = 0; h < Life.HEIGHT; h++) {
+            destination[h] = source[h].slice(0);
+        }
+    };
+    Life.randomFill = function () {
+        var nextGenerationGrid = Array.matrix(Life.HEIGHT, Life.WIDTH, 0);
+        Life.counter = 0;
+        for (var h = 0; h < Life.HEIGHT; h++) {
+            for (var w = 0; w < Life.WIDTH; w++) {
+                if (Math.random() < 0.5) {
+                    nextGenerationGrid[h][w] = Life.ALIVE;
+                    Life.counter++;
+                }
+            }
+        }
+        Life.copyGrid(nextGenerationGrid, Life.grid);        
+    };
+
+
+
+    function Cell(row, column) {
+        this.row = row;
+        this.column = column;
+    };
+
+
+    function BeginLife() {
+        if (Life.state == Life.STOPPED) {
+            Life.interval = setInterval(function () {
+                update();
+            }, Life.DELAY);
+            Life.state = Life.RUNNING;
+        }
+    }
+
+
+    function EndLife() {
+        if (Life.state == Life.RUNNING) {
+            clearInterval(Life.interval);
+            Life.state = Life.STOPPED;
+        }
+    }
+
+    function ResetLife() {
+        Life.grid = Array.matrix(Life.HEIGHT, Life.WIDTH, 0);
+        Life.counter = 0;
+        Life.generations = 0;
+        clearInterval(Life.interval);
+        Life.state = Life.STOPPED;
+        updateAnimations();
+    }
+
+    function AdvanceLife() {
+        Life.state = Life.STOPPED;
+        update();
+    }
+
+    function RandomLife() {
+        Life.state = Life.STOPPED;
+        Life.generations = 0;
+        Life.randomFill();
+        update();
+    }
+
+    function update() {
+    //these can be updated while running. width and height is interesting...
+        Life.AliveColor = $('select[name="alivecolor"]').val();
+        Life.DeadColor = $('select[name="deadcolor"]').val();
+        can.width = $("#width").val();
+        can.height = $("#height").val();
+        Life.X = $("#width").val() || 500;
+        Life.Y = $("#height").val() || 500;
+        Life.WIDTH = Life.X / Life.CELL_SIZE;
+        Life.HEIGHT = Life.Y / Life.CELL_SIZE;
+
+        Life.counter = 0;
+        Life.generations++;
+        Life.updateState();
+        updateAnimations();
+    };
+    function updateAnimations() {
+        for (var h = 0; h < Life.HEIGHT; h++) {
+            for (var w = 0; w < Life.WIDTH; w++) {
+                if (Life.grid[h][w] === Life.ALIVE) {
+                    context.fillStyle = Life.AliveColor;
+                } else {
+                    context.fillStyle = Life.DeadColor;
+                }
+                context.fillRect(
+                                                          w * Life.CELL_SIZE + 1,
+                                                          h * Life.CELL_SIZE + 1,
+                                                          Life.CELL_SIZE - 1,
+                                                          Life.CELL_SIZE - 1);
+            }
+        }
+        $('#population').text(Life.counter);
+        $('#generation').text(Life.generations);
+    };
+    if (can.getContext) {
+        var context = can.getContext('2d');
+        var offset = Life.CELL_SIZE;
+        for (var x = 0; x <= Life.X; x += Life.CELL_SIZE) {
+            context.moveTo(0.5 + x, 0);
+            context.lineTo(0.5 + x, Life.Y);
+        }
+        for (var y = 0; y <= Life.Y; y += Life.CELL_SIZE) {
+            context.moveTo(0, 0.5 + y);
+            context.lineTo(Life.X, 0.5 + y);
+        }        
+        context.stroke();
+        function canvasOnClickHandler(event) {
+            var cell = getCursorPosition(event);
+            var state = Life.grid[cell.row][cell.column] == Life.ALIVE ? Life.DEAD : Life.ALIVE;
+            Life.grid[cell.row][cell.column] = state;
+            updateAnimations();
+        };
+        function getCursorPosition(event) {
+            x = event.offsetX; //(window.Event) ? event.pageX : event.clientX;
+            y = event.offsetY; //(window.Event) ? event.pageY : event.clientY;
+
+            //x -= event.currentTarget.offsetLeft;
+            //y -= event.currentTarget.offsetTop;
+
+            //var x;
+            //var y;
+            //if (event.pageX || event.pageY) {
+            //    x = event.pageX;
+            //    y = event.pageY;
+            //} else {
+            //    x = event.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+            //    y = event.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+            //}
+            //x -= can.offsetLeft;
+            //y -= can.offsetTop;
+            var cell = new Cell(Math.floor((y) / Life.CELL_SIZE), Math.floor((x) / Life.CELL_SIZE));
+            return cell;
+        };
+        can.addEventListener("click", canvasOnClickHandler, false);
+    } else {
+        alert("Canvas is unsupported in your browser.");
+    }
+      
+</script>
