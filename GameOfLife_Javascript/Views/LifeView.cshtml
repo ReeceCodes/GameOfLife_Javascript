@@ -251,23 +251,9 @@
             updateAnimations();
         };
         function getCursorPosition(event) {
-            x = event.offsetX; //(window.Event) ? event.pageX : event.clientX;
-            y = event.offsetY; //(window.Event) ? event.pageY : event.clientY;
+            x = event.offsetX; 
+            y = event.offsetY; 
 
-            //x -= event.currentTarget.offsetLeft;
-            //y -= event.currentTarget.offsetTop;
-
-            //var x;
-            //var y;
-            //if (event.pageX || event.pageY) {
-            //    x = event.pageX;
-            //    y = event.pageY;
-            //} else {
-            //    x = event.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
-            //    y = event.clientY + document.body.scrollTop + document.documentElement.scrollTop;
-            //}
-            //x -= can.offsetLeft;
-            //y -= can.offsetTop;
             var cell = new Cell(Math.floor((y) / Life.CELL_SIZE), Math.floor((x) / Life.CELL_SIZE));
             return cell;
         };
